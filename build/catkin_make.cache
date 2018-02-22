@@ -1,0 +1,2 @@
+beginner_tutorials:table_segment
+-DCATKIN_DEVEL_PREFIX=/home/thomas/practice_ws/devel -DCMAKE_INSTALL_PREFIX=/home/thomas/practice_ws/install -G Unix Makefiles

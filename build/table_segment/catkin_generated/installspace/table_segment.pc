@@ -1,0 +1,8 @@
+prefix=/home/thomas/practice_ws/install
+
+Name: table_segment
+Description: Description of table_segment
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/thomas/practice_ws/install/lib 
+Requires: 
