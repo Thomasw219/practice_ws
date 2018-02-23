@@ -14,9 +14,16 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/PointIndices.h>
-
+#include <pcl/visualization/cloud_viewer.h>
 
 ros::Publisher pub;
+
+void visualize(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, char* name) {
+  pcl::visualization::CloudViewer viewer (name);
+  viewer.showCloud(cloud);
+  while (!viewer.wasStopped ()) {}
+  
+}
 
 void 
 cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
@@ -25,12 +32,13 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   pcl::PCLPointCloud2ConstPtr cloudPtr(cloud_blob);
   pcl::PCLPointCloud2::Ptr cloud_filtered_blob (new pcl::PCLPointCloud2);
   pcl::PCLPointCloud2::Ptr output_blob (new pcl::PCLPointCloud2);
-
+  
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_unfiltered (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
   
-  sensor_msgs::PointCloud2::Ptr output;
+  sensor_msgs::PointCloud2 output;
 
   pcl_conversions::toPCL(*input, *cloud_blob);
 
@@ -41,7 +49,12 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   sor.filter(*cloud_filtered_blob);
 
   ROS_INFO("PointCloud filtered size [%d]", cloud_filtered_blob->width * cloud_filtered_blob->height);
+
+  pcl::fromPCLPointCloud2(*cloud_blob, *cloud_unfiltered);
+  //  visualize(cloud_unfiltered, "Unfiltered");
+  
   pcl::fromPCLPointCloud2(*cloud_filtered_blob, *cloud_filtered);
+  //  visualize(cloud_filtered, "Filtered");
 
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients());
 
@@ -57,7 +70,7 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
   int i = 0, nr_points = (int) cloud_filtered->points.size ();
   
-  while (cloud_filtered->points.size () > 0.3 * nr_points)
+  while (cloud_filtered->points.size () > 0.1 * nr_points)
   {
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices());
     
@@ -76,15 +89,18 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
     extract.filter (*cloud_p);
     ROS_INFO("Pointcloud representing the planar compnent size [%d]", cloud_p->width * cloud_p->height);
 
+    //    visualize(cloud_p, "Segmented Cloud");
+
     // Create the filtering object
     extract.setNegative (true);
     extract.filter (*cloud_f);
     cloud_filtered.swap (cloud_f);
+    
     i++;
   }
 
-  pcl::toPCLPointCloud2(*cloud_f, *output_blob);
-  pcl_conversions::fromPCL(*output_blob, *output);
+  pcl::toPCLPointCloud2(*cloud_filtered, *output_blob);
+  pcl_conversions::fromPCL(*output_blob, output);
   
   // Publish the data.
   pub.publish (output);
